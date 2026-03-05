@@ -24,6 +24,15 @@ public class HelloWorldServiceImpl extends HelloWorldServiceGrpc.HelloWorldServi
 			System.out.println(hobby);
 		}
 
+		//? Random sleep between 0 and 5000 milliseconds to simulate a long processing time
+		try {
+			long sleepTime = (long) (Math.random() * 5000);
+			System.out.println("Sleeping for " + sleepTime + " milliseconds to simulate processing time...\n");
+			Thread.sleep(sleepTime);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
 		// You must use a builder to construct a new Protobuffer object
 		HelloWorld.HelloResponse response = HelloWorld.HelloResponse.newBuilder()
 				.setGreeting("Hello " + request.getName()).build();

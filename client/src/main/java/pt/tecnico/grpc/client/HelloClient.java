@@ -10,6 +10,9 @@ import io.grpc.ManagedChannelBuilder;
 import java.util.ArrayList;
 import java.util.List;
 
+import pt.tecnico.grpc.client.HelloObserver;
+import pt.tecnico.grpc.client.ResponseCollector;
+
 public class HelloClient {
 
 	public static void main(String[] args) throws Exception {
@@ -31,28 +34,56 @@ public class HelloClient {
 		final String host = args[0];
 		final int port = Integer.parseInt(args[1]);
 		final String target = host + ":" + port;
+		final int port2 = Integer.parseInt("8081");
+		final String target2 = host + ":" + port2;
+		ResponseCollector responseCollector = new ResponseCollector();
 
 		// Channel is the abstraction to connect to a service endpoint
 		// Let us use plaintext communication because we do not have certificates
-		final ManagedChannel channel = ManagedChannelBuilder.forTarget(target).usePlaintext().build();
+		final ManagedChannel channel1 = ManagedChannelBuilder.forTarget(target).usePlaintext().build();
+		//? Second channel
+		final ManagedChannel channel2 = ManagedChannelBuilder.forTarget(target2).usePlaintext().build();
 
 		// It is up to the client to determine whether to block the call
 		// Here we create a blocking stub, but an async stub,
 		// or an async stub with Future are always possible.
-		HelloWorldServiceGrpc.HelloWorldServiceBlockingStub stub = HelloWorldServiceGrpc.newBlockingStub(channel);
+		//HelloWorldServiceGrpc.HelloWorldServiceBlockingStub stub = HelloWorldServiceGrpc.newBlockingStub(channel);
+	
+		//? Blocking stub created
+		HelloWorldServiceGrpc.HelloWorldServiceStub stub1 = HelloWorldServiceGrpc.newStub(channel1);
+		HelloWorldServiceGrpc.HelloWorldServiceStub stub2 = HelloWorldServiceGrpc.newStub(channel2);
+
 		List<String> hobbies = new ArrayList<>();  // adds hobbies to the message
+		//O programa continua a sua execução, mesmo antes de chegar alguma resposta ao pedido acima!
 		hobbies.add("football");
 		hobbies.add("basketball");
-		HelloWorld.HelloRequest request = HelloWorld.HelloRequest.newBuilder().setName("friend").addAllHobbies(hobbies).build();
+		HelloWorld.HelloRequest request1 = HelloWorld.HelloRequest.newBuilder().setName("Alice").addAllHobbies(hobbies).build();
+		HelloWorld.HelloRequest request2 = HelloWorld.HelloRequest.newBuilder().setName("Bob").addAllHobbies(hobbies).build();
+
+		//? make asynchronous call
+		stub1.greeting(request1, new HelloObserver<HelloWorld.HelloResponse>(channel1,responseCollector));
+		stub2.greeting(request2, new HelloObserver<HelloWorld.HelloResponse>(channel2,responseCollector));
+		
+		//? do other work while waiting for responses
+		System.out.println("Doing other work while waiting for responses...\n");
+
+		//? wait until all responses are received before exiting
+		responseCollector.waitUntilAllReceived(2);
+
+		//? print all collected responses
+		System.out.println("All responses received!\n");
 
 		// Finally, make the call using the stub
-		HelloWorld.HelloResponse response = stub.greeting(request);
+		//HelloWorld.HelloResponse response1 = stub1.greeting(request);
+		//HelloWorld.HelloResponse response2 = stub2.greeting(request);
 
 		// HelloResponse has auto-generated toString method that shows its contents
-		System.out.println(response);
+		//System.out.println(response1);
+		//System.out.println(response2);
 
 		// A Channel should be shutdown before stopping the process.
-		channel.shutdownNow();
+		//channel1.shutdownNow();
+		//channel2.shutdownNow();
 	}
 
 }
