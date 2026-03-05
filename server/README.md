@@ -1,3 +1,5 @@
+# Solution for the lab: https://tecnico-distsys.github.io/06-grpc-assincronas.html
+
 # gRPC example server
 
 This is a Hello World example of a gRPC application.
