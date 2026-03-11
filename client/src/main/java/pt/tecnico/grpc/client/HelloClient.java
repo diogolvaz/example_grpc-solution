@@ -9,9 +9,9 @@ import io.grpc.ManagedChannelBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import pt.tecnico.grpc.client.HelloObserver;
-import pt.tecnico.grpc.client.ResponseCollector;
+//? import the necessary classes for handling metadata
+import io.grpc.Metadata;
+import io.grpc.stub.MetadataUtils;
 
 public class HelloClient {
 
@@ -34,56 +34,41 @@ public class HelloClient {
 		final String host = args[0];
 		final int port = Integer.parseInt(args[1]);
 		final String target = host + ":" + port;
-		final int port2 = Integer.parseInt("8081");
-		final String target2 = host + ":" + port2;
-		ResponseCollector responseCollector = new ResponseCollector();
+		//? definir a chave para o metadado
+		final Metadata.Key<String> metadata_key =Metadata.Key.of("my_header_key", Metadata.ASCII_STRING_MARSHALLER);
 
 		// Channel is the abstraction to connect to a service endpoint
 		// Let us use plaintext communication because we do not have certificates
-		final ManagedChannel channel1 = ManagedChannelBuilder.forTarget(target).usePlaintext().build();
-		//? Second channel
-		final ManagedChannel channel2 = ManagedChannelBuilder.forTarget(target2).usePlaintext().build();
+		final ManagedChannel channel = ManagedChannelBuilder.forTarget(target).usePlaintext().build();
 
 		// It is up to the client to determine whether to block the call
 		// Here we create a blocking stub, but an async stub,
 		// or an async stub with Future are always possible.
-		//HelloWorldServiceGrpc.HelloWorldServiceBlockingStub stub = HelloWorldServiceGrpc.newBlockingStub(channel);
-	
-		//? Blocking stub created
-		HelloWorldServiceGrpc.HelloWorldServiceStub stub1 = HelloWorldServiceGrpc.newStub(channel1);
-		HelloWorldServiceGrpc.HelloWorldServiceStub stub2 = HelloWorldServiceGrpc.newStub(channel2);
+		HelloWorldServiceGrpc.HelloWorldServiceBlockingStub stub = HelloWorldServiceGrpc.newBlockingStub(channel);
+		
+		//? criar a metadata
+		Metadata metadata = new Metadata();
+		metadata.put(metadata_key, "new metadata");
+		
+		//? adicionar o interceptor ao stub
+		HelloWorldServiceGrpc.HelloWorldServiceBlockingStub stubWithHeader = stub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor((metadata)));
 
 		List<String> hobbies = new ArrayList<>();  // adds hobbies to the message
-		//O programa continua a sua execução, mesmo antes de chegar alguma resposta ao pedido acima!
 		hobbies.add("football");
 		hobbies.add("basketball");
-		HelloWorld.HelloRequest request1 = HelloWorld.HelloRequest.newBuilder().setName("Alice").addAllHobbies(hobbies).build();
-		HelloWorld.HelloRequest request2 = HelloWorld.HelloRequest.newBuilder().setName("Bob").addAllHobbies(hobbies).build();
-
-		//? make asynchronous call
-		stub1.greeting(request1, new HelloObserver<HelloWorld.HelloResponse>(channel1,responseCollector));
-		stub2.greeting(request2, new HelloObserver<HelloWorld.HelloResponse>(channel2,responseCollector));
-		
-		//? do other work while waiting for responses
-		System.out.println("Doing other work while waiting for responses...\n");
-
-		//? wait until all responses are received before exiting
-		responseCollector.waitUntilAllReceived(2);
-
-		//? print all collected responses
-		System.out.println("All responses received!\n");
+		HelloWorld.HelloRequest request = HelloWorld.HelloRequest.newBuilder().setName("friend").addAllHobbies(hobbies).build();
 
 		// Finally, make the call using the stub
-		//HelloWorld.HelloResponse response1 = stub1.greeting(request);
-		//HelloWorld.HelloResponse response2 = stub2.greeting(request);
+		//HelloWorld.HelloResponse response = stub.greeting(request);
+
+		//? fazer a chamada usando o stub com o interceptor
+		HelloWorld.HelloResponse response = stubWithHeader.greeting(request);
 
 		// HelloResponse has auto-generated toString method that shows its contents
-		//System.out.println(response1);
-		//System.out.println(response2);
+		System.out.println(response);
 
 		// A Channel should be shutdown before stopping the process.
-		//channel1.shutdownNow();
-		//channel2.shutdownNow();
+		channel.shutdownNow();
 	}
 
 }

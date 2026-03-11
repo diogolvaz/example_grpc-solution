@@ -1,3 +1,5 @@
+# Solution for the lab: https://tecnico-distsys.github.io/07-grpc-metadata.html
+
 # gRPC example
 
 This is a gRPC example application, composed of three modules:
